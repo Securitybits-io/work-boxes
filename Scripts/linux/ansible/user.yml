@@ -1,0 +1,29 @@
+---
+  - hosts: all
+    become: true
+    gather_facts: false
+
+    tasks:
+    - name: Create group "Konsult"
+      group:
+        name: konsult
+        state: present
+
+    - name: "Add user {{ user }}"
+      user:
+        name: "{{ user }}"
+        password: "{{ pass | password_hash('sha512') }}"
+        create_home: true
+        generate_ssh_key: true
+        ssh_key_bits: 2048
+        ssh_key_file: .ssh/id_rsa
+        shell: /usr/bin/zsh
+        group: konsult
+        groups:
+          - adm
+          - sudo
+          - wireshark
+          - scanner
+          - kaboxer
+          - plugdev
+          - netdev

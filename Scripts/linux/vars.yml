@@ -1,0 +1,5 @@
+# tz: 'Europe/Stockholm'
+user: christoffer
+pass: Serenity88
+extra-tools:
+  - ghidra

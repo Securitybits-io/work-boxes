@@ -1,0 +1,9 @@
+---
+  - hosts: all
+    become: true
+    gather_facts: false
+
+    tasks:
+    - name: Set the timezone to {{ tz | default("Europe/Stockholm") }}
+      timezone:
+        name: '{{ tz | default("Europe/Stockholm")}}'

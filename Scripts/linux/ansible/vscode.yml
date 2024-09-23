@@ -1,0 +1,41 @@
+# Install VS Code
+---
+  - hosts: all
+    become: true
+    gather_facts: false
+
+    tasks:
+    - name: Install VSCode Requirements
+      apt:
+        name: "{{ item }}"
+        update_cache: yes
+      loop:
+        - apt-transport-https
+
+    # - name: Download signing key
+    #   command:
+    #     cmd: "curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /tmp/packages.microsoft.gpg"
+        
+    # - name: Install signing key
+    #   command:
+    #     cmd: "install -o root -g root -m 644 /tmp/packages.microsoft.gpg /usr/share/keyrings/"
+
+    - name: Add Microsoft GPG Key
+      get_url:
+        url: "https://packages.microsoft.com/keys/microsoft.asc"
+        dest: /etc/apt/keyrings/packages.microsoft.asc
+        mode: "0644"
+        force: true
+
+    - name: Add VSCode Repository
+      apt_repository:
+        repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/packages.microsoft.asc] https://packages.microsoft.com/repos/vscode stable main"
+        state: present
+        filename: VSCode
+        update_cache: yes
+
+    - name: Install VSCode
+      apt:
+        name: "{{ item }}"
+      loop:
+        - code

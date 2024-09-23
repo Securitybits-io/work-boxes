@@ -1,0 +1,27 @@
+---
+  - hosts: all
+    become: true
+    gather_facts: false
+
+    tasks:
+    - name: Install Base Toolings
+      apt:
+        name: "{{ item }}"
+        update_cache: yes
+      loop:
+        - vim
+        - curl
+        - unzip
+        - sublist3r
+        - gobuster
+        - git
+        - terminator
+        - seclists
+        - zaproxy
+    
+    - name: Install Extra Tools
+      apt:
+        name: "{{ item }}"
+        update_cache: yes
+      with_items: "{{ extra_tools }}"
+      when: extra_tools is defined
