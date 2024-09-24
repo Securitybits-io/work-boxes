@@ -1,4 +1,5 @@
 # tz: 'Europe/Stockholm'
+hostname: SRVAPP01
 user: christoffer
 pass: Serenity88
 extra-tools:

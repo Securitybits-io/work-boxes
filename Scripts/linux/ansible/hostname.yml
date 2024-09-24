@@ -1,0 +1,11 @@
+---
+  - hosts: all
+    become: true
+    gather_facts: true
+
+    tasks:
+    - name: Change Hostname
+      hostname:
+        name: "{{ item }}"
+      with_items: "{{ hostname }}"
+      when: hostname is defined
