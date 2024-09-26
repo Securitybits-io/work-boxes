@@ -45,7 +45,7 @@ Vagrant.configure("2") do |config|
     boxes.each do |box|
         config.vm.define box[:name] do |target|
             target.vm.provider "virtualbox" do |vb|
-                vb.name = CUSTOMER + "-" + PROJECT + "-" + box[:name]
+                vb.name = CUSTOMER + "_" + PROJECT + "_" + box[:name]
                 vb.customize ["modifyvm", :id, "--groups", "/Pentest"]
             end
         
