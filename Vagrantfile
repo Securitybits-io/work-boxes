@@ -14,7 +14,7 @@ Vagrant.configure("2") do |config|
     ENV['VAGRANT_DEFAULT_PROVIDER'] = 'virtualbox'
     boxes = [
         { :name => "Kali",     :box => "kalilinux/rolling", :os => "linux", :box_version => "2024.2.0" },
-        { :name => "Windows",  :box => "mayfly/windows10",  :os => "windows", :size => "80GB" }
+        { :name => "Windows",  :box => "commando/default",  :os => "windows", :size => "80GB" }
     ]
 
     config.vm.provider "virtualbox" do |vb|
