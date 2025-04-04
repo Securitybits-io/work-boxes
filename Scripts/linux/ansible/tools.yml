@@ -18,7 +18,7 @@
         - terminator
         - seclists
         - zaproxy
-        - nvim
+        - neovim
     
     - name: Install Extra Tools
       apt:
