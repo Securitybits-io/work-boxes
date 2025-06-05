@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# New Signing KEy
+sudo wget https://archive.kali.org/archive-keyring.gpg -O /usr/share/keyrings/kali-archive-keyring.gpg
+
 # Colors
 RED="\033[01;31m"      # Errors
 GREEN="\033[01;32m"    # Success
