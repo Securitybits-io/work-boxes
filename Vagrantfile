@@ -85,8 +85,9 @@ Vagrant.configure("2") do |config|
                 target.vm.provision "shell", path: "./Scripts/linux/provision/provision.sh", :args => "--keyboard=se"
 
                 target.vm.provision "ansible_local" do |ansible|
-                    ansible.install_mode = "pip"
-                    ansible.pip_install_cmd = "sudo apt install python3-pip -y"
+                    #ansible.install_mode = "pip"
+                    #ansible.pip_install_cmd = "sudo apt install python3-pip -y"
+                    ansible.install_mode = "default"
                     ansible.playbook = "./Scripts/linux/playbook.yml"
                     ansible.extra_vars = "./Scripts/linux/vars.yml"
                 end
