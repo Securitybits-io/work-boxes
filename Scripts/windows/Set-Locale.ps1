@@ -1,30 +1,35 @@
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory)]
+    [ValidateNotNullOrEmpty()]
+    [string] $TimeZoneId,
+
+    [Parameter(Mandatory)]
+    [ValidatePattern('^[a-zA-Z]{2,3}(?:-[a-zA-Z]{2})?$')]
+    [string] $LanguageTag
+)
+
 Set-StrictMode -Version Latest
 $ProgressPreference = 'SilentlyContinue'
 $ErrorActionPreference = 'Stop'
-trap {
-    Write-Output "ERROR: $_"
-    Write-Output (($_.ScriptStackTrace -split '\r?\n') -replace '^(.*)$','ERROR: $1')
-    Exit 1
+
+if ((Get-TimeZone).Id -ne $TimeZoneId) {
+    Write-Output "Setting Windows timezone to '$TimeZoneId'."
+    Set-TimeZone -Id $TimeZoneId
 }
 
-# Set Europe/Stockholm
-Set-TimeZone -Id "W. Europe Standard Time"
+$currentLanguages = @(Get-WinUserLanguageList)
+if ($currentLanguages.Count -ne 1 -or $currentLanguages[0].LanguageTag -ne $LanguageTag) {
+    Write-Output "Setting Windows user language to '$LanguageTag'."
+    Set-WinUserLanguageList -LanguageList $LanguageTag -Force
+}
 
-# Set Keyboard En-Se
+if ((Get-Culture).Name -ne $LanguageTag) {
+    Write-Output "Setting Windows culture to '$LanguageTag'."
+    Set-Culture -CultureInfo $LanguageTag
+}
 
-Set-WinUserLanguageList en-SE -Force
-
-# set the date format, number format, etc.
-Set-Culture en-SE
-
-# show window content while dragging.
-Set-ItemProperty -Path 'HKCU:Control Panel\Desktop' -Name DragFullWindows -Value 1
-
-# show hidden files.
-Set-ItemProperty -Path HKCU:Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced -Name Hidden -Value 1
-
-# show protected operating system files.
-Set-ItemProperty -Path HKCU:Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced -Name ShowSuperHidden -Value 1
-
-# show file extensions.
-Set-ItemProperty -Path HKCU:Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced -Name HideFileExt -Value 0
+Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name DragFullWindows -Value 1
+Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' -Name Hidden -Value 1
+Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' -Name ShowSuperHidden -Value 1
+Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' -Name HideFileExt -Value 0

@@ -1,0 +1,28 @@
+---
+provider:
+  memory: 4000
+  cpus: 4
+
+keyboard: se
+timezone: Europe/Stockholm
+
+windows:
+  timezone: W. Europe Standard Time
+  language: en-SE
+
+engagement:
+  shared_folder: Shared
+  vm_group: /Pentest
+
+machines:
+  Kali:
+    enabled: true
+    box: kalilinux/rolling
+    box_version: "2026.2.0"
+    os: linux
+
+  Windows:
+    enabled: true
+    box: commando/default
+    os: windows
+    disk_size: 80GB

@@ -1,0 +1,13 @@
+---
+engagement:
+  customer: example-customer
+  project: external-web
+  hostname: workbox
+  shared_folder: Shared
+
+machines:
+  Kali:
+    enabled: true
+
+  Windows:
+    enabled: false

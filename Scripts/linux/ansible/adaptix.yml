@@ -1,0 +1,92 @@
+---
+- name: Teamservers | Install Adaptix C2
+  hosts: teamservers
+  gather_facts: false
+  become: true
+
+  tasks:
+    - name: Adaptix C2 | Apt Dependencies
+      block:
+      - name: Apt | Update apt package cache
+        apt:
+          update_cache: yes
+
+      - name: Apt | Install dependencies
+        apt:
+          name:
+            - make
+            - mingw-w64
+            - gcc
+            - g++
+            - g++-mingw-w64
+            - build-essential
+            - cmake
+            - libssl-dev
+            - qt6-base-dev
+            - qt6-base-private-dev
+            - libxkbcommon-dev
+            - qt6-websockets-dev
+            - qt6-declarative-dev
+
+    - name: Go | Install Go
+      block:
+      - name: "Download Go binary"
+        ansible.builtin.get_url:
+          url: "https://go.dev/dl/go1.24.4.linux-amd64.tar.gz"
+          dest: "/tmp/go1.24.4.linux-amd64.tar.gz"
+          checksum: "sha256:77e5da33bb72aeaef1ba4418b6fe511bc4d041873cbf82e5aa6318740df98717"
+
+      - name: "Remove previous Go installation"
+        ansible.builtin.file:
+          path: "{{ item }}"
+          state: absent
+        with_items:
+          - /usr/local/go
+          - /usr/local/bin/go
+
+      - name: "Unarchive Go binary"
+        ansible.builtin.unarchive:
+          src: "/tmp/go1.24.4.linux-amd64.tar.gz"
+          dest: "/usr/local/"
+          remote_src: yes
+
+      - name: "Symlink Go binary"
+        ansible.builtin.file:
+          src: "/usr/local/go/bin/go"
+          dest: "/usr/local/bin/go"
+          state: link
+
+    - name: AdaptixC2 | Clone and Compile
+      block:
+      - name: Git | Clone source code
+        ansible.builtin.git:
+          repo: https://github.com/Adaptix-Framework/AdaptixC2.git
+          dest: /home/{{ user }}/adaptixc2
+          
+
+      - name: Shell | Run pre_install_linux_all.sh
+        shell:
+          cmd: /bin/sh /home/{{ user }}/adaptixc2/pre_install_linux_all.sh
+
+          
+      - name: Make | Compile Adaptix C2
+        community.general.make:
+          chdir: /home/{{ user }}/adaptixc2
+          targets:
+            - client
+        
+    - name: AdaptixC2 Extension-Kit | Clone and compile
+      block:
+        - name: Git | Clone source code
+          ansible.builtin.git:
+            repo: https://github.com/Adaptix-Framework/Extension-Kit
+            dest: /home/{{ user }}/adaptixc2-extension
+
+          
+        - name: Make | Compile Adaptix C2 Extenders
+          community.general.make:
+            chdir: /home/{{ user }}/adaptixc2-extension
+            targets:
+              - all
+      become: yes
+      become_user: "{{ user }}"

@@ -4,3 +4,4 @@
 - import_playbook: ansible/user.yml
 - import_playbook: ansible/tools.yml
 - import_playbook: ansible/vscode.yml
+- import_playbook: ansible/adaptix.yml
