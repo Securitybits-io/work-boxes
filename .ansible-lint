@@ -1,0 +1,10 @@
+---
+exclude_paths:
+  - .vagrant/
+  - Shared/
+  - config/engagement.yml
+  - Scripts/linux/ansible/adaptix.yml
+extra_vars:
+  workbox_engagement_vars_file: "{{ playbook_dir }}/../../../tests/fixtures/vars.yml"
+  workbox_keyboard: us
+  workbox_timezone: Etc/UTC

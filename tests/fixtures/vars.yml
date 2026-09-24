@@ -1,0 +1,9 @@
+---
+# Validation only: this value represents a locked account, not a real password.
+linux:
+  user:
+    name: validation-user
+    password_hash: "!"
+workbox_engagement_vars_file: "{{ playbook_dir }}/../../../tests/fixtures/vars.yml"
+workbox_keyboard: us
+workbox_timezone: Etc/UTC

@@ -1,7 +1,17 @@
 ---
-- import_playbook: ansible/timezone.yml
-- import_playbook: ansible/hostname.yml
-- import_playbook: ansible/user.yml
-- import_playbook: ansible/tools.yml
-- import_playbook: ansible/vscode.yml
-- import_playbook: ansible/adaptix.yml
+- name: Configure regional settings
+  ansible.builtin.import_playbook: ansible/locale.yml
+- name: Configure the workstation account
+  ansible.builtin.import_playbook: ansible/user.yml
+- name: Install workstation tools
+  ansible.builtin.import_playbook: ansible/tools.yml
+- name: Configure workstation dotfiles
+  ansible.builtin.import_playbook: ansible/dotfiles.yml
+- name: Configure the workstation wallpaper
+  ansible.builtin.import_playbook: ansible/wallpaper.yml
+- name: Configure the container runtime
+  ansible.builtin.import_playbook: ansible/docker.yml
+- name: Install the BloodHound CE management CLI
+  ansible.builtin.import_playbook: ansible/bloodhound.yml
+- name: Install the code editor
+  ansible.builtin.import_playbook: ansible/vscode.yml

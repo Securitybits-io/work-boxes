@@ -1,41 +1,43 @@
-# Install VS Code
 ---
-  - hosts: all
-    become: true
-    gather_facts: false
+- name: Install Visual Studio Code
+  hosts: all
+  become: true
+  gather_facts: false
 
-    tasks:
-    - name: Install VSCode Requirements
-      apt:
-        name: "{{ item }}"
-        update_cache: yes
-      loop:
-        - apt-transport-https
+  tasks:
+    - name: Install repository dependencies
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
 
-    # - name: Download signing key
-    #   command:
-    #     cmd: "curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /tmp/packages.microsoft.gpg"
-        
-    # - name: Install signing key
-    #   command:
-    #     cmd: "install -o root -g root -m 644 /tmp/packages.microsoft.gpg /usr/share/keyrings/"
+    - name: Ensure the APT keyring directory exists
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
 
-    - name: Add Microsoft GPG Key
-      get_url:
-        url: "https://packages.microsoft.com/keys/microsoft.asc"
+    - name: Download the Microsoft signing key
+      ansible.builtin.get_url:
+        url: https://packages.microsoft.com/keys/microsoft.asc
         dest: /etc/apt/keyrings/packages.microsoft.asc
+        owner: root
+        group: root
         mode: "0644"
-        force: true
 
-    - name: Add VSCode Repository
-      apt_repository:
-        repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/packages.microsoft.asc] https://packages.microsoft.com/repos/vscode stable main"
+    - name: Configure the Visual Studio Code repository
+      ansible.builtin.apt_repository:
+        repo: deb [arch=amd64 signed-by=/etc/apt/keyrings/packages.microsoft.asc] https://packages.microsoft.com/repos/vscode stable main
         state: present
         filename: VSCode
-        update_cache: yes
+        update_cache: true
 
-    - name: Install VSCode
-      apt:
-        name: "{{ item }}"
-      loop:
-        - code
+    - name: Install Visual Studio Code
+      ansible.builtin.apt:
+        name: code
+        state: present

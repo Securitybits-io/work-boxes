@@ -47,15 +47,17 @@ project = required_string(settings, "engagement", "project")
 hostname = required_string(settings, "engagement", "hostname")
 shared_folder_setting = required_string(settings, "engagement", "shared_folder")
 vm_group = required_string(settings, "engagement", "vm_group")
-keyboard = required_string(settings, "keyboard")
-timezone = required_string(settings, "timezone")
-windows_timezone = required_string(settings, "windows", "timezone")
-windows_language = required_string(settings, "windows", "language")
+linux_keyboard = required_string(settings, "linux", "locale", "keyboard")
+linux_timezone = required_string(settings, "linux", "locale", "timezone")
+windows_timezone = required_string(settings, "windows", "locale", "timezone")
+windows_language = required_string(settings, "windows", "locale", "language")
 
 hostname_pattern = /\A[a-zA-Z0-9][a-zA-Z0-9.-]*\z/
+keyboard_pattern = /\A[a-zA-Z0-9_]+[a-zA-Z0-9_-]*(?:,[a-zA-Z0-9_]+[a-zA-Z0-9_-]*)*\z/
 timezone_pattern = /\A[a-zA-Z0-9_+-]+(?:\/[a-zA-Z0-9_+-]+)*\z/
 raise "engagement.hostname contains unsupported characters" unless hostname.match?(hostname_pattern)
-raise "timezone contains unsupported characters" unless timezone.match?(timezone_pattern)
+raise "linux.locale.keyboard contains unsupported characters" unless linux_keyboard.match?(keyboard_pattern)
+raise "linux.locale.timezone contains unsupported characters" unless linux_timezone.match?(timezone_pattern)
 
 shared_folder = File.expand_path(shared_folder_setting, __dir__)
 raise "Shared folder does not exist: #{shared_folder}" unless File.directory?(shared_folder)
@@ -123,13 +125,16 @@ Vagrant.configure("2") do |config|
       else
         target.vm.communicator = "ssh"
         target.vm.synced_folder ".", "/vagrant", disabled: false
-        target.vm.provision "shell", path: "./Scripts/linux/provision/provision.sh", args: "--keyboard=#{keyboard}"
+        target.vm.provision "shell", path: "./Scripts/linux/provision/provision.sh"
 
         target.vm.provision "ansible_local" do |ansible|
           ansible.install_mode = "default"
           ansible.playbook = "./Scripts/linux/playbook.yml"
-          ansible.extra_vars = "./Scripts/linux/vars.yml"
-          ansible.raw_arguments = ["--extra-vars='hostname=#{hostname} timezone=#{timezone}'"]
+          ansible.galaxy_role_file = "./Scripts/linux/requirements.yml"
+          ansible.galaxy_command = "ansible-galaxy collection install --requirements-file=%{role_file}"
+          ansible.raw_arguments = [
+            "--extra-vars='workbox_keyboard=#{linux_keyboard} workbox_timezone=#{linux_timezone}'"
+          ]
         end
       end
 

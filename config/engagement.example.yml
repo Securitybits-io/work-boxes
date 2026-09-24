@@ -5,6 +5,12 @@ engagement:
   hostname: workbox
   shared_folder: Shared
 
+linux:
+  user:
+    name: user
+    # Generate a hash interactively with: openssl passwd -6
+    password_hash: ""
+
 machines:
   Kali:
     enabled: true

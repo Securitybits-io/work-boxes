@@ -3,12 +3,15 @@ provider:
   memory: 4000
   cpus: 4
 
-keyboard: se
-timezone: Europe/Stockholm
+linux:
+  locale:
+    keyboard: se
+    timezone: Europe/Stockholm
 
 windows:
-  timezone: W. Europe Standard Time
-  language: en-SE
+  locale:
+    timezone: W. Europe Standard Time
+    language: en-SE
 
 engagement:
   shared_folder: Shared
@@ -22,7 +25,7 @@ machines:
     os: linux
 
   Windows:
-    enabled: true
+    enabled: false
     box: commando/default
     os: windows
     disk_size: 80GB

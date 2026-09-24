@@ -1,0 +1,61 @@
+---
+- name: Install Docker and Compose
+  hosts: all
+  become: true
+  become_user: root
+  gather_facts: false
+
+  vars_files:
+    - ../vars.yml
+    - "{{ workbox_engagement_vars_file | default('../../../config/engagement.yml') }}"
+
+  tasks:
+    - name: Validate the configured workstation user
+      ansible.builtin.assert:
+        that:
+          - linux is defined
+          - linux is mapping
+          - linux.user is defined
+          - linux.user is mapping
+          - workbox_user_name is defined
+          - workbox_user_name is string
+          - workbox_user_name | length > 0
+        fail_msg: Define linux.user.name in config/engagement.yml before running this playbook.
+
+    - name: Require the workstation account to exist
+      ansible.builtin.getent:
+        database: passwd
+        key: "{{ workbox_user_name }}"
+        fail_key: true
+
+    - name: Install Docker and the Compose plugin from Kali packages
+      ansible.builtin.apt:
+        name:
+          - docker.io
+          - docker-compose
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Enable and start Docker
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Allow the workstation user to access Docker
+      ansible.builtin.user:
+        name: "{{ workbox_user_name }}"
+        groups:
+          - docker
+        append: true
+        state: present
+
+    - name: Verify the Compose plugin is available
+      ansible.builtin.command:
+        argv:
+          - docker
+          - compose
+          - version
+      changed_when: false
+      when: not ansible_check_mode

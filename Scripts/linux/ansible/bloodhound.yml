@@ -1,0 +1,78 @@
+---
+- name: Install BloodHound CLI
+  hosts: all
+  become: true
+  become_user: root
+  gather_facts: true
+  gather_subset:
+    - min
+
+  vars:
+    bloodhound_cli_version: v0.2.1
+    bloodhound_cli_architectures:
+      x86_64: amd64
+      aarch64: arm64
+    bloodhound_cli_architecture: "{{ bloodhound_cli_architectures[ansible_facts['architecture']] }}"
+    # SHA-256 digests published with the official v0.2.1 GitHub release assets.
+    bloodhound_cli_checksums:
+      amd64: 2f932d8174f3ed69adf38a8ae94fa58f56d92fadecae8e240f767bb88d449983
+      arm64: fd7197939c40fd8dc4b239d2696b610b8aa2f2fc5480bb834ff52e204458a18e
+    bloodhound_cli_directory: "/opt/bloodhound-cli/{{ bloodhound_cli_version }}-{{ bloodhound_cli_architecture }}"
+    bloodhound_cli_archive: "bloodhound-cli-linux-{{ bloodhound_cli_architecture }}.tar.gz"
+
+  tasks:
+    - name: Require a supported Linux architecture
+      ansible.builtin.assert:
+        that:
+          - ansible_facts['system'] == 'Linux'
+          - ansible_facts['architecture'] in bloodhound_cli_architectures
+        fail_msg: BloodHound CLI provisioning supports Linux AMD64 and ARM64.
+
+    - name: Install download and archive dependencies
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - gzip
+          - tar
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Create the versioned BloodHound CLI directory
+      ansible.builtin.file:
+        path: "{{ bloodhound_cli_directory }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Download and verify the BloodHound CLI release
+      ansible.builtin.get_url:
+        url: >-
+          https://github.com/SpecterOps/bloodhound-cli/releases/download/{{ bloodhound_cli_version }}/{{ bloodhound_cli_archive }}
+        dest: "{{ bloodhound_cli_directory }}/{{ bloodhound_cli_archive }}"
+        checksum: "sha256:{{ bloodhound_cli_checksums[bloodhound_cli_architecture] }}"
+        owner: root
+        group: root
+        mode: "0644"
+
+    # A first-run download does not exist yet during Ansible check mode.
+    - name: Install the downloaded CLI
+      when: not ansible_check_mode
+      block:
+        - name: Extract BloodHound CLI
+          ansible.builtin.unarchive:
+            src: "{{ bloodhound_cli_directory }}/{{ bloodhound_cli_archive }}"
+            dest: "{{ bloodhound_cli_directory }}"
+            remote_src: true
+            owner: root
+            group: root
+            mode: "0755"
+
+        - name: Make BloodHound CLI available on the system PATH
+          ansible.builtin.file:
+            src: "{{ bloodhound_cli_directory }}/bloodhound-cli"
+            dest: /usr/local/bin/bloodhound-cli
+            state: link
+            owner: root
+            group: root

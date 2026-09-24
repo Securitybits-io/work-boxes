@@ -1,0 +1,129 @@
+---
+- name: Install workstation dotfiles
+  hosts: all
+  become: true
+  become_user: root
+  gather_facts: false
+
+  vars_files:
+    - ../vars.yml
+    - "{{ workbox_engagement_vars_file | default('../../../config/engagement.yml') }}"
+
+  vars:
+    dotfiles_repo: https://github.com/Securitybits-io/.dotfiles.git
+    dotfiles_version: main
+    dotfiles_home: "{{ ansible_facts.getent_passwd[workbox_user_name][4] }}"
+    dotfiles_directory: "{{ dotfiles_home }}/.dotfiles"
+    dotfiles_tpm_version: master
+
+  tasks:
+    - name: Validate the configured workstation user
+      ansible.builtin.assert:
+        that:
+          - linux is defined
+          - linux is mapping
+          - linux.user is defined
+          - linux.user is mapping
+          - workbox_user_name is defined
+          - workbox_user_name is string
+          - workbox_user_name | length > 0
+        fail_msg: Define linux.user.name in config/engagement.yml before running this playbook.
+
+    - name: Look up the workstation user's home directory
+      ansible.builtin.getent:
+        database: passwd
+        key: "{{ workbox_user_name }}"
+        fail_key: true
+
+    - name: Install dotfiles applications and dependencies
+      ansible.builtin.apt:
+        name:
+          - acl
+          - alacritty
+          - fontconfig
+          - fzf
+          - git
+          - neovim
+          - ripgrep
+          - stow
+          - tmux
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Configure dotfiles as the workstation user
+      become: true
+      become_user: "{{ workbox_user_name }}"
+      environment:
+        HOME: "{{ dotfiles_home }}"
+        LC_ALL: C
+        GIT_TERMINAL_PROMPT: "0"
+      block:
+        - name: Clone the complete dotfiles repository
+          ansible.builtin.git:
+            repo: "{{ dotfiles_repo }}"
+            dest: "{{ dotfiles_directory }}"
+            version: "{{ dotfiles_version }}"
+            update: true
+            force: false
+          notify: Refresh the user's font cache
+
+        - name: Install the tmux plugin manager
+          ansible.builtin.git:
+            repo: https://github.com/tmux-plugins/tpm.git
+            dest: "{{ dotfiles_home }}/.tmux/plugins/tpm"
+            version: "{{ dotfiles_tpm_version }}"
+            update: true
+            force: false
+
+        # A fresh checkout does not exist yet during Ansible check mode.
+        - name: Link all dotfiles packages from the checkout
+          when: not ansible_check_mode
+          block:
+            - name: Discover top-level Stow packages
+              ansible.builtin.find:
+                paths: "{{ dotfiles_directory }}"
+                file_type: directory
+                recurse: false
+                hidden: false
+              register: dotfiles_package_directories
+
+            - name: Require at least one Stow package
+              ansible.builtin.assert:
+                that:
+                  - dotfiles_package_directories.matched > 0
+                fail_msg: The dotfiles checkout contains no top-level Stow packages.
+
+            - name: Assemble the Stow command for all packages
+              ansible.builtin.set_fact:
+                dotfiles_stow_argv: >-
+                  {{ ['stow', '--dir', dotfiles_directory, '--target', dotfiles_home,
+                      '--no-folding', '--verbose=1', '--stow']
+                     + (dotfiles_package_directories.files | map(attribute='path')
+                        | map('basename') | sort | list) }}
+
+            - name: Check all packages for existing configuration conflicts
+              ansible.builtin.command:
+                argv: "{{ dotfiles_stow_argv + ['--simulate'] }}"
+              changed_when: false
+
+            - name: Stow all configuration packages into the user's home
+              ansible.builtin.command:
+                argv: "{{ dotfiles_stow_argv }}"
+              register: dotfiles_stow_result
+              changed_when: >-
+                dotfiles_stow_result.stderr is search('(?m)^(LINK|UNLINK|MKDIR|RMDIR): ')
+              notify: Refresh the user's font cache
+
+  handlers:
+    - name: Refresh the user's font cache
+      become: true
+      become_user: "{{ workbox_user_name }}"
+      environment:
+        HOME: "{{ dotfiles_home }}"
+      ansible.builtin.command:
+        argv:
+          - fc-cache
+          - "{{ dotfiles_home }}/.local/share/fonts"
+      register: dotfiles_font_cache
+      changed_when: dotfiles_font_cache.rc == 0

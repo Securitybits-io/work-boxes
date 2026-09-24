@@ -1,0 +1,90 @@
+---
+- name: Configure the workstation wallpaper
+  hosts: all
+  become: true
+  gather_facts: false
+
+  vars_files:
+    - ../vars.yml
+    - "{{ workbox_engagement_vars_file | default('../../../config/engagement.yml') }}"
+
+  vars:
+    workbox_wallpaper_home: "{{ ansible_facts.getent_passwd[workbox_user_name][4] }}"
+    workbox_wallpaper_group: "{{ ansible_facts.getent_passwd[workbox_user_name][2] }}"
+
+  tasks:
+    - name: Validate the configured workstation user
+      ansible.builtin.assert:
+        that:
+          - linux is defined
+          - linux is mapping
+          - linux.user is defined
+          - linux.user is mapping
+          - workbox_user_name is defined
+          - workbox_user_name is string
+          - workbox_user_name | length > 0
+        fail_msg: Define linux.user.name in config/engagement.yml before running this playbook.
+
+    - name: Look up the workstation account
+      ansible.builtin.getent:
+        database: passwd
+        key: "{{ workbox_user_name }}"
+        fail_key: true
+
+    - name: Install the Xfce settings and X11 display commands
+      ansible.builtin.apt:
+        name:
+          - xfconf
+          - x11-xserver-utils
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Create the local wallpaper directory
+      ansible.builtin.file:
+        path: /usr/local/share/backgrounds/workbox
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install the workstation background image
+      ansible.builtin.copy:
+        src: ../../../config/files/kali-bg.png
+        dest: /usr/local/share/backgrounds/workbox/kali-bg.png
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Install the Xfce wallpaper helper
+      ansible.builtin.copy:
+        src: ../files/set-wallpaper.sh
+        dest: /usr/local/bin/workbox-wallpaper
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Ensure the user owns their autostart directories
+      ansible.builtin.file:
+        path: "{{ workbox_wallpaper_home }}/{{ item }}"
+        state: directory
+        owner: "{{ workbox_user_name }}"
+        group: "{{ workbox_wallpaper_group }}"
+        mode: "0755"
+      loop:
+        - .config
+        - .config/autostart
+
+    - name: Apply the wallpaper in the user's Xfce session at login
+      ansible.builtin.copy:
+        dest: "{{ workbox_wallpaper_home }}/.config/autostart/workbox-wallpaper.desktop"
+        owner: "{{ workbox_user_name }}"
+        group: "{{ workbox_wallpaper_group }}"
+        mode: "0644"
+        content: |
+          [Desktop Entry]
+          Type=Application
+          Name=Work-Boxes Wallpaper
+          Exec=/usr/local/bin/workbox-wallpaper /usr/local/share/backgrounds/workbox/kali-bg.png
+          OnlyShowIn=XFCE;
+          Terminal=false

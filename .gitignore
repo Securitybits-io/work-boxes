@@ -1,3 +1,5 @@
 .vagrant/
 /Shared/
 /config/engagement.yml
+/Scripts/linux/vars.local.yml
+/.cache/

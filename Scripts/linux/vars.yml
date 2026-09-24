@@ -1,8 +1,17 @@
-# tz: 'Europe/Stockholm'
-hostname: SRVAPP01
-user: user
-pass: password
-extra_tools:
+---
+workbox_user_name: "{{ linux.user.name }}"
+workbox_user_password_hash: "{{ linux.user.password_hash }}"
+workbox_user_primary_group: konsult
+workbox_user_shell: /usr/bin/zsh
+workbox_user_groups:
+  - adm
+  - sudo
+  - wireshark
+  - scanner
+  - kaboxer
+  - plugdev
+  - netdev
+workbox_extra_tools:
   - offsec-pen300
   - 7zip
   - aircrack-ng
@@ -20,12 +29,9 @@ extra_tools:
   - dnscat2
   - dotdotpwn
   - evil-winrm
-  - evil-winrm
   - exploitdb
   - ffuf
   - ghidra
-  - git
-  - gobuster
   - gowitness
   - hashcat
   - hcxtools
@@ -57,7 +63,6 @@ extra_tools:
   - samdump2
   - scalpel
   - scapy
-  - seclists
   - sherlock
   - socat
   - sqlmap

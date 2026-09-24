@@ -1,0 +1,99 @@
+---
+- name: Configure Kali regional settings
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Validate the keyboard layout before writing system configuration
+      ansible.builtin.assert:
+        that:
+          - workbox_keyboard is defined
+          - workbox_keyboard is string
+          - workbox_keyboard is match('^[a-zA-Z0-9_]+[a-zA-Z0-9_-]*(,[a-zA-Z0-9_]+[a-zA-Z0-9_-]*)*\Z')
+        fail_msg: Set linux.locale.keyboard to an XKB layout such as se (or a comma-separated list such as se,us).
+
+    - name: Configure system timezone
+      community.general.timezone:
+        name: "{{ workbox_timezone }}"
+
+    - name: Install keyboard configuration dependencies
+      ansible.builtin.apt:
+        name:
+          - keyboard-configuration
+          - console-setup
+          - xkb-data
+          - xfconf
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+      notify:
+        - Refresh the saved console keyboard map
+        - Refresh X11 input device defaults
+
+    - name: Configure system keyboard layout and clear any inherited variant
+      ansible.builtin.lineinfile:
+        path: /etc/default/keyboard
+        regexp: '^\s*{{ item.key }}='
+        line: '{{ item.key }}="{{ item.value }}"'
+        state: present
+      loop:
+        - key: XKBLAYOUT
+          value: "{{ workbox_keyboard }}"
+        - key: XKBVARIANT
+          value: ""
+      notify:
+        - Refresh the saved console keyboard map
+        - Refresh X11 input device defaults
+
+    - name: Install the Xfce keyboard layout helper
+      ansible.builtin.copy:
+        src: ../files/set-keyboard.sh
+        dest: /usr/local/bin/workbox-keyboard
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Ensure the system desktop autostart directory exists
+      ansible.builtin.file:
+        path: /etc/xdg/autostart
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Apply the configured layout in each Xfce user's session
+      ansible.builtin.copy:
+        dest: /etc/xdg/autostart/workbox-keyboard.desktop
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          [Desktop Entry]
+          Type=Application
+          Name=Work-Boxes Keyboard
+          Exec=/usr/local/bin/workbox-keyboard {{ workbox_keyboard }}
+          OnlyShowIn=XFCE;
+          Terminal=false
+      # Refresh caches on first deployment even if the system file already matches.
+      notify:
+        - Refresh the saved console keyboard map
+        - Refresh X11 input device defaults
+
+  handlers:
+    - name: Refresh the saved console keyboard map
+      ansible.builtin.command:
+        argv:
+          - setupcon
+          - --keyboard-only
+          - --save-only
+      changed_when: true
+
+    - name: Refresh X11 input device defaults
+      ansible.builtin.command:
+        argv:
+          - udevadm
+          - trigger
+          - --subsystem-match=input
+          - --action=change
+      changed_when: true

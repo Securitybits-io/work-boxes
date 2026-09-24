@@ -1,29 +1,56 @@
 ---
-  - hosts: all
-    become: true
-    gather_facts: false
+- name: Configure the workstation account
+  hosts: all
+  become: true
+  gather_facts: false
 
-    tasks:
-    - name: Create group "Konsult"
-      group:
-        name: konsult
+  vars_files:
+    - ../vars.yml
+    - "{{ workbox_engagement_vars_file | default('../../../config/engagement.yml') }}"
+
+  tasks:
+    - name: Validate workstation account settings
+      ansible.builtin.assert:
+        that:
+          - linux is defined
+          - linux is mapping
+          - linux.user is defined
+          - linux.user is mapping
+          - workbox_user_name is defined
+          - workbox_user_name is string
+          - workbox_user_name | length > 0
+          - workbox_user_primary_group is string
+          - workbox_user_primary_group | length > 0
+          - workbox_user_groups is sequence
+          - workbox_user_groups is not string
+        fail_msg: Set linux.user.name in config/engagement.yml and check the shared account defaults in Scripts/linux/vars.yml.
+
+    - name: Require linux.user.password_hash in the engagement configuration
+      ansible.builtin.assert:
+        that:
+          - workbox_user_password_hash is defined
+          - workbox_user_password_hash is string
+          - workbox_user_password_hash is match('^(\$(6|y)\$[^$]+\$.+|[!*])$')
+        fail_msg: Set linux.user.password_hash in config/engagement.yml to a password hash or an explicit account lock.
+      no_log: true
+
+    - name: Ensure the workstation primary group exists
+      ansible.builtin.group:
+        name: "{{ workbox_user_primary_group }}"
         state: present
 
-    - name: "Add user {{ user }}"
-      user:
-        name: "{{ user }}"
-        password: "{{ pass | password_hash('sha512') }}"
+    - name: Configure the workstation user without resetting existing credentials
+      ansible.builtin.user:
+        name: "{{ workbox_user_name }}"
+        password: "{{ workbox_user_password_hash }}"
+        update_password: on_create
         create_home: true
         generate_ssh_key: true
         ssh_key_bits: 2048
         ssh_key_file: .ssh/id_rsa
-        shell: /usr/bin/zsh
-        group: konsult
-        groups:
-          - adm
-          - sudo
-          - wireshark
-          - scanner
-          - kaboxer
-          - plugdev
-          - netdev
+        shell: "{{ workbox_user_shell }}"
+        group: "{{ workbox_user_primary_group }}"
+        groups: "{{ workbox_user_groups }}"
+        append: true
+        state: present
+      no_log: true
