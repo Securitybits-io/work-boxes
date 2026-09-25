@@ -1,0 +1,99 @@
+---
+- name: Clone workstation tool repositories
+  hosts: all
+  become: true
+  gather_facts: false
+
+  vars_files:
+    - ../vars.yml
+    - "{{ workbox_engagement_vars_file | default('../../../config/engagement.yml') }}"
+
+  vars:
+    workbox_tools_home: "{{ ansible_facts.getent_passwd[workbox_user_name][4] }}"
+    workbox_tools_directory: "{{ workbox_tools_home }}/tools"
+
+  tasks:
+    - name: Validate the configured workstation user
+      ansible.builtin.assert:
+        that:
+          - linux is defined
+          - linux is mapping
+          - linux.user is defined
+          - linux.user is mapping
+          - workbox_user_name is defined
+          - workbox_user_name is string
+          - workbox_user_name | length > 0
+        fail_msg: Define linux.user.name in config/engagement.yml before running this playbook.
+
+    - name: Validate the repository list
+      ansible.builtin.assert:
+        that:
+          - workbox_tool_repositories is sequence
+          - workbox_tool_repositories is not string
+          - workbox_tool_repositories is not mapping
+        fail_msg: Define workbox_tool_repositories as a list, or use [] for no repositories.
+
+    - name: Validate repository settings
+      ansible.builtin.assert:
+        that:
+          - item is mapping
+          - item.name is defined
+          - item.name is string
+          - item.name is match('^[A-Za-z0-9][A-Za-z0-9._-]*\Z')
+          - item.repo is defined
+          - item.repo is string
+          - item.repo | trim | length > 0
+          - item.version | default('HEAD') is string
+          - item.version | default('HEAD') | trim | length > 0
+        fail_msg: Each repository needs a simple folder name, a repo URL, and an optional nonempty version.
+      loop: "{{ workbox_tool_repositories }}"
+      loop_control:
+        label: "{{ item.name | default('invalid entry') }}"
+
+    - name: Require unique repository folder names
+      ansible.builtin.assert:
+        that:
+          - >-
+            workbox_tool_repositories | map(attribute='name') | unique(case_sensitive=true) | list | length
+            == workbox_tool_repositories | length
+        fail_msg: Each repository must have a different folder name under ~/tools.
+
+    - name: Look up the workstation user's home directory
+      ansible.builtin.getent:
+        database: passwd
+        key: "{{ workbox_user_name }}"
+        fail_key: true
+
+    - name: Install repository provisioning dependencies
+      ansible.builtin.apt:
+        name:
+          - acl
+          - git
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Manage tool repositories as the workstation user
+      become: true
+      become_user: "{{ workbox_user_name }}"
+      environment:
+        HOME: "{{ workbox_tools_home }}"
+        GIT_TERMINAL_PROMPT: "0"
+      block:
+        - name: Create the user's tools directory
+          ansible.builtin.file:
+            path: "{{ workbox_tools_directory }}"
+            state: directory
+            mode: "0755"
+
+        - name: Clone missing tool repositories
+          ansible.builtin.git:
+            repo: "{{ item.repo }}"
+            dest: "{{ workbox_tools_directory }}/{{ item.name }}"
+            version: "{{ item.version | default('HEAD') }}"
+            clone: true
+            update: false
+            force: false
+          loop: "{{ workbox_tool_repositories }}"
+          loop_control:
+            label: "{{ item.name }}"

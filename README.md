@@ -85,7 +85,7 @@ not normally rerun provisioning.
 | `config/engagement.yml` (local, ignored) | Client details, VM overrides, and Kali account credentials. |
 | [config/engagement.example.yml](config/engagement.example.yml) | Template for a new engagement. |
 | [config/defaults.yml](config/defaults.yml) | Shared VM, box, resource, and regional defaults. |
-| [Scripts/linux/vars.yml](Scripts/linux/vars.yml) | Shared shell/group settings, extra packages, and references to the engagement account. |
+| [Scripts/linux/vars.yml](Scripts/linux/vars.yml) | Shared shell/group settings, extra packages, tool repositories, and references to the engagement account. |
 | [TODO.md](TODO.md) | Project backlog. |
 
 **Engagement settings override defaults**, including machine enablement.
@@ -111,6 +111,29 @@ Keep both Linux and Windows locale defaults present, even when one VM is disable
 Add Kali packages to `workbox_extra_tools` in `Scripts/linux/vars.yml`, then
 reprovision. Removing a package from the list does not uninstall it.
 The old `Scripts/linux/vars.local.yml` is no longer loaded.
+
+### Tool Repositories
+
+Set `workbox_tool_repositories` in `Scripts/linux/vars.yml` (empty by default):
+
+```yaml
+workbox_tool_repositories:
+  - name: example-tool
+    repo: https://github.com/example/example-tool.git
+    # version: main  # Optional branch, tag, or commit for the initial clone.
+```
+
+For engagement-specific tools, override the same top-level key in `config/engagement.yml`.
+Replace the example URL with your repositories, then run `vagrant provision Kali`.
+First-time provisioning also runs this automatically. Each repository is cloned
+into `~/tools/<name>` as `linux.user.name`; `~/tools` is created even for an empty list.
+Names must be unique folder names without path separators.
+
+Existing checkouts are left unchanged: update them manually with Git. Changing a
+URL/version or removing an entry does not update or delete an existing checkout.
+This only clones source; it does not run installers or install tool dependencies.
+Private repositories need authentication configured for the workstation user;
+SSH URLs also need trusted host keys. Do not put tokens or passwords in repository URLs.
 
 ## Switching Engagements
 
@@ -143,6 +166,7 @@ Vagrant installs Ansible and the declared
 | [user.yml](Scripts/linux/ansible/user.yml) | Workstation account, home, SSH key, and additive group membership. |
 | [tools.yml](Scripts/linux/ansible/tools.yml) | Base and extra Kali packages. |
 | [dotfiles.yml](Scripts/linux/ansible/dotfiles.yml) | Alacritty, Neovim, fzf, ripgrep, tmux, and user-owned Git/Stow configuration. |
+| [tool-repositories.yml](Scripts/linux/ansible/tool-repositories.yml) | User-owned Git repositories under `~/tools`. |
 | [wallpaper.yml](Scripts/linux/ansible/wallpaper.yml) | Custom wallpaper at the workstation user's Xfce login. |
 | [docker.yml](Scripts/linux/ansible/docker.yml) | Docker, Compose, service startup, and user group access. |
 | [bloodhound.yml](Scripts/linux/ansible/bloodhound.yml) | Checksum-verified BloodHound CLI, without deploying CE containers. |
@@ -219,13 +243,14 @@ From PowerShell, with the Linux tools available in WSL:
 wsl bash Scripts/validate.sh
 ```
 
-On Linux, run `bash Scripts/validate.sh`. It requires Ruby, Python 3 with PyYAML,
+On Linux, run `bash Scripts/validate.sh`. It requires Git, Ruby, Python 3 with PyYAML,
 yamllint, ShellCheck, ansible-core, ansible-lint, and the collection declared in
 `Scripts/linux/requirements.yml`. Install that collection as the validation user
 with `ansible-galaxy collection install -r Scripts/linux/requirements.yml`.
 
 Validation checks YAML, shell/Ruby syntax, provisioning contracts, helper behavior,
-and Ansible syntax/lint. It uses dummy credentials, does not install missing tools,
+tool cloning against temporary local repositories, and Ansible syntax/lint.
+It uses dummy credentials, does not install missing tools,
 and does not start VMs. These checks do not prove that desktop login hooks work in
 a live guest.
 

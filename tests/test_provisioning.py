@@ -39,7 +39,7 @@ class ProvisioningContracts(unittest.TestCase):
         self.assertIs(account_task["no_log"], True)
 
     def test_account_consumers_load_the_same_engagement_file(self):
-        for name in ("user", "docker", "dotfiles", "wallpaper"):
+        for name in ("user", "docker", "dotfiles", "wallpaper", "tool-repositories"):
             with self.subTest(playbook=name):
                 self.assertEqual(play(name)["vars_files"], [
                     "../vars.yml",
@@ -60,6 +60,30 @@ class ProvisioningContracts(unittest.TestCase):
         user_block = next(t for t in dotfiles["tasks"] if "block" in t)
         self.assertEqual(user_block["become_user"], "{{ workbox_user_name }}")
         self.assertIn("workbox_user_name", dotfiles["vars"]["dotfiles_home"])
+
+    def test_tool_repositories_use_the_user_home_and_preserve_existing_clones(self):
+        self.assertEqual(read_yaml(LINUX / "vars.yml")["workbox_tool_repositories"], [])
+        repositories = play("tool-repositories")
+        self.assertEqual(repositories["vars"]["workbox_tools_home"],
+                         "{{ ansible_facts.getent_passwd[workbox_user_name][4] }}")
+        self.assertEqual(repositories["vars"]["workbox_tools_directory"], "{{ workbox_tools_home }}/tools")
+        packages = module_args(repositories["tasks"], "ansible.builtin.apt")
+        self.assertEqual(set(packages["name"]), {"acl", "git"})
+        user_block = next(t for t in repositories["tasks"] if "block" in t)
+        self.assertIs(user_block["become"], True)
+        self.assertEqual(user_block["become_user"], "{{ workbox_user_name }}")
+        self.assertEqual(user_block["environment"]["HOME"], "{{ workbox_tools_home }}")
+        self.assertEqual(user_block["environment"]["GIT_TERMINAL_PROMPT"], "0")
+        folder = module_args(user_block["block"], "ansible.builtin.file")
+        self.assertEqual(folder["path"], "{{ workbox_tools_directory }}")
+        self.assertEqual(folder["state"], "directory")
+        git_task = next(t for t in user_block["block"] if "ansible.builtin.git" in t)
+        self.assertEqual(git_task["loop"], "{{ workbox_tool_repositories }}")
+        git = git_task["ansible.builtin.git"]
+        self.assertEqual(git["dest"], "{{ workbox_tools_directory }}/{{ item.name }}")
+        self.assertEqual(git["version"], "{{ item.version | default('HEAD') }}")
+        self.assertIs(git["update"], False)
+        self.assertIs(git["force"], False)
 
     def test_packages_have_one_owner_and_are_batched(self):
         tools = play("tools")
@@ -134,6 +158,7 @@ class ProvisioningContracts(unittest.TestCase):
         imports = [p["ansible.builtin.import_playbook"] for p in read_yaml(LINUX / "playbook.yml")]
         self.assertLess(imports.index("ansible/user.yml"), imports.index("ansible/docker.yml"))
         self.assertLess(imports.index("ansible/dotfiles.yml"), imports.index("ansible/wallpaper.yml"))
+        self.assertLess(imports.index("ansible/user.yml"), imports.index("ansible/tool-repositories.yml"))
         self.assertLess(imports.index("ansible/docker.yml"), imports.index("ansible/bloodhound.yml"))
         self.assertEqual(len(imports), len(set(imports)))
         self.assertFalse(any("adaptix" in name.lower() for name in imports))

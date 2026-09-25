@@ -7,6 +7,8 @@
   ansible.builtin.import_playbook: ansible/tools.yml
 - name: Configure workstation dotfiles
   ansible.builtin.import_playbook: ansible/dotfiles.yml
+- name: Clone workstation tool repositories
+  ansible.builtin.import_playbook: ansible/tool-repositories.yml
 - name: Configure the workstation wallpaper
   ansible.builtin.import_playbook: ansible/wallpaper.yml
 - name: Configure the container runtime

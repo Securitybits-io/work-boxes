@@ -5,7 +5,7 @@ repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 cd -- "$repo_root"
 
 missing=()
-for tool in ruby yamllint shellcheck ansible-lint ansible-playbook python3; do
+for tool in ruby yamllint shellcheck ansible-lint ansible-playbook python3 git; do
     command -v "$tool" >/dev/null 2>&1 || missing+=("$tool")
 done
 if ((${#missing[@]})); then
@@ -42,6 +42,7 @@ printf 'Checking provisioning contracts...\n'
 python3 tests/test_provisioning.py
 python3 tests/test_wallpaper.py
 python3 tests/test_keyboard.py
+python3 tests/test_tool_repositories.py
 printf 'Checking Ansible syntax using dummy configuration...\n'
 ansible-playbook -i localhost, -c local --syntax-check Scripts/linux/playbook.yml \
     --extra-vars "@$repo_root/tests/fixtures/vars.yml"
