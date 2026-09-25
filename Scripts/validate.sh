@@ -16,6 +16,7 @@ fi
 # Explicit inputs keep ignored credentials, client data, and Adaptix out of checks.
 yaml_files=(
     .yamllint.yml .ansible-lint
+    .github/workflows/validate.yml
     config/defaults.yml config/engagement.example.yml
     Scripts/linux/vars.yml
     Scripts/linux/requirements.yml Scripts/linux/playbook.yml

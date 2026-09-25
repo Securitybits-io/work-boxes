@@ -248,6 +248,10 @@ yamllint, ShellCheck, ansible-core, ansible-lint, and the collection declared in
 `Scripts/linux/requirements.yml`. Install that collection as the validation user
 with `ansible-galaxy collection install -r Scripts/linux/requirements.yml`.
 
+GitHub Actions uses an isolated Python 3.12 environment with the tool versions in
+[.github/requirements-ci.txt](.github/requirements-ci.txt). Collection installation
+and validation use that same environment; tool paths and versions appear in the CI log.
+
 Validation checks YAML, shell/Ruby syntax, provisioning contracts, helper behavior,
 tool cloning against temporary local repositories, and Ansible syntax/lint.
 It uses dummy credentials, does not install missing tools,

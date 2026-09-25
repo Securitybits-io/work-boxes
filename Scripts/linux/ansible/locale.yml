@@ -48,7 +48,7 @@
 
     - name: Install the Xfce keyboard layout helper
       ansible.builtin.copy:
-        src: ../files/set-keyboard.sh
+        src: "{{ playbook_dir | dirname }}/files/set-keyboard.sh"
         dest: /usr/local/bin/workbox-keyboard
         owner: root
         group: root

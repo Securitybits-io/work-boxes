@@ -58,7 +58,7 @@
 
     - name: Install the Xfce wallpaper helper
       ansible.builtin.copy:
-        src: ../files/set-wallpaper.sh
+        src: "{{ playbook_dir | dirname }}/files/set-wallpaper.sh"
         dest: /usr/local/bin/workbox-wallpaper
         owner: root
         group: root

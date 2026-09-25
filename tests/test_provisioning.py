@@ -106,6 +106,9 @@ class ProvisioningContracts(unittest.TestCase):
         copies = [task["ansible.builtin.copy"] for task in wallpaper["tasks"] if "ansible.builtin.copy" in task]
         image = next(task for task in copies if task.get("src", "").endswith("kali-bg.png"))
         self.assertTrue((LINUX / "ansible" / image["src"]).resolve().is_file())
+        helper = next(task for task in copies if task.get("src", "").endswith("set-wallpaper.sh"))
+        self.assertEqual(helper["src"], "{{ playbook_dir | dirname }}/files/set-wallpaper.sh")
+        self.assertTrue((LINUX / "files/set-wallpaper.sh").is_file())
         with (ROOT / "config/files/kali-bg.png").open("rb") as handle:
             self.assertEqual(handle.read(8), b"\x89PNG\r\n\x1a\n")
         self.assertTrue(image["dest"].startswith("/usr/local/share/backgrounds/"))
@@ -130,7 +133,8 @@ class ProvisioningContracts(unittest.TestCase):
         self.assertIn(["udevadm", "trigger", "--subsystem-match=input", "--action=change"], handlers.values())
         copies = [task["ansible.builtin.copy"] for task in locale["tasks"] if "ansible.builtin.copy" in task]
         helper = next(task for task in copies if task.get("src", "").endswith("set-keyboard.sh"))
-        self.assertTrue((LINUX / "ansible" / helper["src"]).resolve().is_file())
+        self.assertEqual(helper["src"], "{{ playbook_dir | dirname }}/files/set-keyboard.sh")
+        self.assertTrue((LINUX / "files/set-keyboard.sh").is_file())
         autostart = next(task for task in copies if task["dest"].endswith(".desktop"))
         self.assertEqual(autostart["dest"], "/etc/xdg/autostart/workbox-keyboard.desktop")
         self.assertIn("OnlyShowIn=XFCE;", autostart["content"])

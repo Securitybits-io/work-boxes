@@ -45,6 +45,7 @@ workbox_extra_tools:
   - kerberoast
   - krbrelayx
   - lapsdumper
+  - ligolo-ng
   - masscan
   - mimikatz
   - net-tools
