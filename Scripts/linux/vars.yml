@@ -23,6 +23,7 @@ workbox_extra_tools:
   - bettercap-ui
   - binwalk
   - binwalk3
+  - bloodhound-ce-python
   - bloodyad
   - caido
   - caido-cli
@@ -39,12 +40,15 @@ workbox_extra_tools:
   - hashcat
   - hcxtools
   - hoaxshell
+  - httpx-toolkit
   - hydra
   - impacket-scripts
   - john
+  - jq
   - kerberoast
   - krbrelayx
   - lapsdumper
+  - ldeep
   - ligolo-ng
   - masscan
   - mimikatz
@@ -52,9 +56,11 @@ workbox_extra_tools:
   - netexec
   - nikto
   - nmap
+  - nuclei
   - obsidian
   - p0f
   - passing-the-hash
+  - pipx
   - powercat
   - proxychains-ng
   - powershell
@@ -67,12 +73,15 @@ workbox_extra_tools:
   - samdump2
   - scalpel
   - scapy
+  - sharphound
   - sherlock
   - socat
   - sqlmap
   - sshuttle
   - stunnel4
+  - subfinder
   - tcpdump
+  - testssl.sh
   - trufflehog
   - windows-binaries
   - wireshark
