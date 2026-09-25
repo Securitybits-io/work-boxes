@@ -11,7 +11,7 @@ workbox_user_groups:
   - kaboxer
   - plugdev
   - netdev
-workbox_tool_repositories: 
+workbox_tool_repositories:
   - name: smbhoarder
     repo: https://github.com/egilas/smbhoarder
 workbox_extra_tools:

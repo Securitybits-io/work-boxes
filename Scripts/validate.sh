@@ -30,7 +30,7 @@ shell_files=(
 )
 
 printf 'Checking YAML formatting...\n'
-yamllint -c .yamllint.yml "${yaml_files[@]}"
+yamllint -f parsable -c .yamllint.yml "${yaml_files[@]}"
 printf 'Checking shell syntax and lint...\n'
 for script in "${shell_files[@]}"; do
     bash -n "$script"

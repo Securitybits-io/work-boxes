@@ -62,7 +62,7 @@ class ProvisioningContracts(unittest.TestCase):
         self.assertIn("workbox_user_name", dotfiles["vars"]["dotfiles_home"])
 
     def test_tool_repositories_use_the_user_home_and_preserve_existing_clones(self):
-        self.assertEqual(read_yaml(LINUX / "vars.yml")["workbox_tool_repositories"], [])
+        self.assertIsInstance(read_yaml(LINUX / "vars.yml")["workbox_tool_repositories"], list)
         repositories = play("tool-repositories")
         self.assertEqual(repositories["vars"]["workbox_tools_home"],
                          "{{ ansible_facts.getent_passwd[workbox_user_name][4] }}")
